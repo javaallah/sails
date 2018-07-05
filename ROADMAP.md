@@ -1,53 +1,91 @@
-# Module Dashboard
+# Sails Roadmap
 
-The current build status, immediate-term plans, and future goals of this repository.
+As of November 2017, the Sails project roadmap is now managed [on Trello](https://trello.com/b/s9zEnyG7) to allow for simpler feedback and collaboration.
 
-> ###### Feature Requests
+The "Bugs/Priority" and "Frontlog" columns on Trello consist of relatively hashed-out proposals for useful features or patches which would be excellent places to contribute code to the Sails framework. We would exuberantly accept a pull request implementing any of the Trello cards in these columns, so long as that pull request was accompanied with reasonable tests that prove it, all code changes adhere to the style guide laid out in the `.eslintrc` file, and it doesn't cause breaking changes to any other core functionality.
+
+> Community proposals can still be made as pull requests against this file-- but instead of managing status updates here, once approved, they are now managed on the [Trello board](https://trello.com/b/s9zEnyG7).  See "Pending Proposals" below for more on that.
+
+
+> ##### What's up with Sails v1.0?
 >
-> We welcome feature requests as edits to the "Backlog" section below.
+> For the latest news on Sails v1.0 and beyond, and to check out specific changes and new features, see https://trello.com/b/s9zEnyG7.  (Please feel free to contribute by leaving comments on cards!  It helps the core team to verify that the new release is working as expected.)
 >
-> Before editing this file, please check out [How To Contribute to ROADMAP.md](https://gist.github.com/mikermcneil/bdad2108f3d9a9a5c5ed)- it's a quick read :)
->
-> Also take a second to check that your feature request is relevant to Sails core and not one of its dependencies (e.g. Waterline, one of its adapters, one of the core generators, etc.)  If you aren't sure, feel free to send the PR here and someone will make sure it finds its way to the right place.  Note that (for now) core hooks reside in Sails core and so relevant feature requests for a specific hook _do_ belong in this file.
+> You can find more information about installing v1.0 here: http://sailsjs.com/documentation/upgrading/to-v-1-0
 
 
 
-## Build Status
+## Pending Proposals
 
-| Release                                                                                                                 | Install Command                                                | Build Status
-|------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | -----------------
-| [![NPM version](https://badge.fury.io/js/sails.png)](https://github.com/balderdashy/sails/tree/stable) _(stable)_       | `npm install sails`                                          | [![Build Status](https://travis-ci.org/balderdashy/sails.png?branch=stable)](https://travis-ci.org/balderdashy/sails) |
-| [edge](https://github.com/balderdashy/sails/tree/master)                                                                | `npm install sails@git://github.com/balderdashy/sails.git` | [![Build Status](https://travis-ci.org/balderdashy/sails.png?branch=master)](https://travis-ci.org/balderdashy/sails) |
+The table below consists of pending proposals for useful features which are not currently in the official roadmap on Trello.  To submit a proposal, send a pull request adding a row to this column.  Please see the Sails [contribution guide](https://github.com/balderdashy/sails/blob/master/CONTRIBUTING.md) to get started.
 
-
-
-## Roadmap
-
-Our short-to-medium-term roadmap items, in order of descending priority:
-
-_(feel free to suggest things)_
+> - If you would like to see a new feature or an enhancement to an existing feature in Sails, please review the [Sails contribution guide](https://github.com/balderdashy/sails/blob/master/CONTRIBUTING.md). When you are ready, submit a pull request adding a new row to the bottom of this table.
+> - Check [the official Sails roadmap on Trello](https://trello.com/b/s9zEnyG7) to make sure there isn't already something similar feature already planned, in discussion, or under active development.
+> - In your pull request, please include a detailed proposal with a short summary of your use case, the reason why you cannot implement the feature as a hook, adapter, or generator, and a well-reasoned explanation of how you think that feature could be implemented.  Your proposal should include changes or additions to usage, expected return values, and any errors or exit conditions.
+> - Once your pull request has been created, add an additional commit which links to it from your new row in the table below.
+> - If there is sufficient interest in the proposal from other contributors, a core team member will close your PR and add a new card for the proposal to the appropriate column [on Trello](https://trello.com/b/s9zEnyG7).
 
 
- Feature                                                  | Owner                                                                            | Details
- :------------------------------------------------------- | :------------------------------------------------------------------------------- | :------
- Socket.io 1.0                                            | [@mikermcneil](https://github.com/mikermcneil)                                   | upgrade to Socket.io 1.0
- Lock + unlock app in dev env                             | [@mikermcneil](https://github.com/mikermcneil)     | Capability for a hook to "lock" and/or "unlock" the app (in a development env only).  When "locked" all requests are intercepted by an endpoint which responds with either a page or JSON payload communicating a custom message.  e.g. so the grunt hook can let us know as it syncs.  e.g. `sails.emit('lock')`
- Hook dependency/load order mgmt                          | [@mikermcneil](https://github.com/mikermcneil)                                   | rebase the hook dependency+optional depenency system originally proposed by @ragulka
- Standalone router                                        | [@mikermcneil](https://github.com/mikermcneil)                                   | replace express dependency in `lib/router` with standalone router- either routification or @dougwilson's new project
- Standalone view renderer                                 | [@mikermcneil](https://github.com/mikermcneil)                                   | Use @fishrock123's standalone views module (enables views over sockets)
- Standalone static middleware                             | [@mikermcneil](https://github.com/mikermcneil)                                   | use static middleware directly in `lib/router` (enables static files over sockets)
- Request interpreter: Full stream support                 | [@mikermcneil](https://github.com/mikermcneil)                                   | Use new manufactured req/res streams in lib/hooks/sockets (this adds full streams2 compatibility to our socket.io integration, or more generally for any type of attached server)
- Break out core hooks into separate modules               | [@mikermcneil](https://github.com/mikermcneil)                                   | Makes Sails more composable, and removes most of its dependencies in core. Also allows for easier sharing of responsibility w/ the community, controls issue flow
+Feature                                          | Proposal                                                                              | Summary
+ :---------------------------------------------- | :------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------
+ Allow select/omit clauses when populating a singular association | https://trello.com/c/yM9WPxzr/107-waterline-fs2q-tolerate-a-subcriteria-being-provided-to-populate-for-a-singular-associations-but-only-if-it-exclusively-contains | Don't throw an error if these clauses are included in a `populate` for a singular association (but still error if actual "where" criteria are used)
+ Generate `test/` folder in new Sails apps       | [#2499](https://github.com/balderdashy/sails/pull/2499#issuecomment-171556544)        | Generate a generic setup for mocha tests in all new Sails apps.  Originally suggested by [@jedd-ahyoung](https://github.com/jedd-ahyoung).
 
 
-#### Backlog
 
-The backlog consists of features which are not currently in the immediate-term roadmap above, but are useful.  We would exuberantly accept a pull request implementing any of the items below, so long as it was accompanied with reasonable tests that prove it, and it doesn't break other core functionality.
+<!--
 
- Feature                                         | Owner                                              | Details
- :---------------------------------------------- | :------------------------------------------------- | :------
- Watch+reload controllers, models, etc. w/o re-lifting  | [@jbielick](https://github.com/jbielick)    | Reload controllers/models/config/services/etc. without restarting the server. Show a "rebuilding" page while re-bootstrapping.
- Support for multiple blueprint prefixes         | [@mnaughto](https://github.com/konstantinzolotarev)           | https://github.com/balderdashy/sails/issues/2031
- SPDY protocol support                           | [@mikermcneil](https://github.com/mikermcneil)     | https://github.com/balderdashy/sails/issues/80
- Sockets hook: drop-in Primus alternative        | [@alejandroiglesias](https://github.com/alejandroiglesias) | https://github.com/balderdashy/sails/issues/945
- Have a `sails migrate` or `sails create-db` command | [@globegitter](https://github.com/Globegitter) | For production environments it would be nice to have a save/secure command that creates the db automatically for you
+TODO: Double check that all items from here are covered in Trello:
+
+
+## 1.1.0 and beyond
+
++ **Blueprint API: Support transactions, when possible.**
+  + See "FUTURE" comments throughout the code for the blueprints hook in this repo.
++ **Sessions: Expand `express-session`/Connect session store interface**
+  + Expose a method in session stores which can be used to do an initial, asynchronous ping in order to check configuration.
+  + Worst case, we should also be able to use [`.get()`](https://github.com/expressjs/session/blob/2667028d39b3655a45eb1f9579d7f66f26a6937f/README.md#storegetsid-callback) with a nonsense session id to do this-- the errors just won't be as nice, or as easy to negotiate.
+  + The best middle-of-the-road solution is probably to get a couple of standardized error codes in the spec for `.get()`
+    + Most likely, that's stuff like `ECONNREFUSED`
+    + But would be a lot better if we could swing more specific error codes-- e.g. `E_BAD_SESSION_STORE_CONFIG` and `E_COULD_NOT_CONNECT_TO_SESSION_STORE`-- since that would eliminate the possibility of false positives due to throwing / `cb(err)`-ing.
+
+
+## 2.0.0 and beyond
+
++ **Custom responses: Deprecate res.ok() in favor of res.success(); as well as some other breaking changes to custom responses.**
+  + See first half of https://github.com/balderdashy/sails/commit/518bae84f01d17eac84c96977e5ed0c3b6a98083#commitcomment-20917978 for details.
++ **Blueprint API: Make the behavior of certain error conditions in blueprint actions customizable via `sails.config.blueprints.handle*`**
+  + See second half of https://github.com/balderdashy/sails/commit/518bae84f01d17eac84c96977e5ed0c3b6a98083#commitcomment-20917978 for details.
++ **Federate sails-hook-blueprints**
+  + In the process, pull the implementation of the three public RPS methods into sails-hook-sockets (and take the rest of the private methods out and drop them into the blueprints hook)
++ **Federate sails-hook-session**
+  + Remember: This will involve a few delicate tweaks to the boilerplate config generated by `sails new foo --without=session`
++ **Federate sails-hook-i18n**
+  + ~~(Will need to publish the backwards-compatible i18n hook as a separate package at that point)~~
++ **Switch to Lodash view engine by default?**
+  + This is really just to normalize the confusing backwardsness of `<%=` vs. `<%-` in EJS/Lodash/Underscore
+  + Would need to figure out partials/layouts though
+
+-->
+
+
+<!--
+
+TODO: go through these lingering pending proposals:
+
+Atomic `update`                                 | See [this issue](https://github.com/balderdashy/sails-mysql/issues/253) for details.  Originally suggested by [@leedm777](https://github.com/leedm777).
+Log key configuration info on lift              | For example, if `config/local.js` is present, log a message explaining that it will be used.  See also https://github.com/dominictarr/rc/issues/23#issuecomment-33875197. Originally suggested by [@mikermcneil](https://github.com/mikermcneil).
+Lock + unlock app in dev env                    | Capability for a hook to "lock" and/or "unlock" the app (in a development env only).  When "locked" all requests are intercepted by an endpoint which responds with either a page or JSON payload communicating a custom message.  e.g. so the grunt hook can let us know as it syncs.  e.g. `sails.emit('lock')`. Originally suggested by [@mikermcneil](https://github.com/mikermcneil).
+Hook dependency/load order mgmt                 | Rebase the hook dependency+optional depenency system.  A detailed spec was originally proposed by @ragulka, but since then, custom hooks have complicated the equation.
+~~Standalone router~~                               | ~~replace express dependency in `lib/router` with standalone router- either routification or @dougwilson's new project.  See https://github.com/balderdashy/sails/pull/2351#issuecomment-71855236 for more information.~~
+Standalone view renderer                        | Use @fishrock123's standalone views module (enables views over sockets).  See https://github.com/balderdashy/sails/pull/2351#issuecomment-71855236 for more information.
+Standalone static middleware                    | use static middleware directly in `lib/router` (enables static files over sockets)  See https://github.com/balderdashy/sails/pull/2351#issuecomment-71855236 for more information.
+Break out core hooks into separate modules      | Makes Sails more composable, and removes most of its dependencies in core. Also allows for easier sharing of responsibility w/ the community, controls issue flow.  Started with github.com/balderdashy/sails-hook-sockets
+~~Allow disabling session mw for static assets~~    | ~~Allow session handling to be turned off for static assets. In certain situations, a request for a static asset concurrent to a request to a controller action can have undesirable consequences; specifically, a race condition can occur wherein the static asset response ends up overwriting changes that were made to the session in the controller action.  Luckily, this is a very rare issue, and only occurs when there are race conditions from two different simultaneous requests sent from the same browser with the same cookies.  If you encounter this issue today, first think about whether you actually need/want to do things this way.  If you absolutely need this functionality, a workaround is to change the order of middleware or override the `session` middleware implementation in `config/http.js`.  However, for the long-term, we need a better solution.  It would be good to improve the default behavior of our dependency, `express-session` so that it uses a smarter heuristics.  For more information, see the implementation of session persistence in [express-session](https://github.com/expressjs/session/blob/master/index.js#L207).  However, the single cleanest solution to the general case of this issue would be the ability to turn off session handling features for all static assets (or on a per-route basis).  This is easier said than done.  If you'd like to have this feature, and have the cycles/chops to implement it, please tweet @sgress454 or @mikermcneil and we can dive in and work out a plan.  Summary of what we could merge:  We could remove the default session middleware from our http middleware configuration, and instead add it as a manual step in the virtual router that runs before the route action is triggered.  Good news it that we're actually already doing this in order to support sessions [in the virtual router](https://github.com/balderdashy/sails/blob/master/lib/router/index.js#L101) (e.g. for use w/ socket.io).  So the actual implementation isn't a lot of work-- just needs some new automated tests written, as well as a lot of manual testing (including w/ redis sessions).  We also need to update our HTTP docs to explain that requests for static assets no longer create a session by default, and that default HTTP session support is no longer configured via Express's middleware chain (handled by the virtual router instead.)  Finally we'd also need to document how to enable sessions for assets (i.e. attaching the express-session middleware in `config/http.js`, but doing so directly _before_ the static middleware runs so that other routes don't try to retrieve/save the session twice).  [@sgress454](https://github.com/sgress454)~~
+Manual migrations in Sails CLI                  | For production environments it would be nice to have a save/secure command that creates the db automatically for you; e.g. a `sails migrate` or `sails create-db` command.  See [sails-migrations](https://github.com/BlueHotDog/sails-migrations) and [sails-db-migrate](https://github.com/building5/sails-db-migrate) for inspiration.  We should begin by contributing and using one or both of these modules in production in order to refine them further into a full fledged proposal (the Sails core team is using sails-migrations currently).  Originally suggested by [@globegitter](https://github.com/Globegitter).
+Wildcard action policies                        | Instead of only having one global action policy `'*'` it would be nice if we could define policies for a specific action in all controllers: `'*/destroy': ['isOwner']` or something similar.  Originally suggested by [@ProLoser](https://github.com/ProLoser).
+SPDY/HTTP2 protocol support                     | See https://github.com/balderdashy/sails/issues/80 for background.
+
+
+-->
+

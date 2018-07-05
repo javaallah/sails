@@ -3,15 +3,12 @@
  */
 var should = require('should');
 var assert = require('assert');
-var _ = require('lodash');
+var _ = require('@sailshq/lodash');
 
 var constants = require('../fixtures/constants');
 var customHooks = require('../fixtures/customHooks');
 
 var $Sails = require('../helpers/sails');
-
-var supertest = require('supertest');
-
 
 // TIP:
 //
@@ -38,11 +35,40 @@ describe('app.initializeHooks()', function() {
       sails.hooks.should.be.an.Object;
     });
     it('should expose at least the expected core hooks', function() {
-
       var intersection = _.intersection(_.keys(sails.hooks), _.keys(constants.EXPECTED_DEFAULT_HOOKS));
-      assert.deepEqual(intersection, _.keys(constants.EXPECTED_DEFAULT_HOOKS),  'Missing expected default hooks');
+
+      // If i18n is missing, that might be ok-- but just check to be sure sails.config.i18n.locales is `[]`.
+      // (i.e. it must have turned itself off)
+      if (!_.contains(intersection, 'i18n')) {
+        assert(_.isEqual(sails.config.i18n.locales, []), 'i18n.locales config must be [] in this situation');
+      }
+
+      assert.deepEqual(intersection, _.without(_.keys(constants.EXPECTED_DEFAULT_HOOKS), 'i18n'),  'Missing expected default hooks');
     });
   });
+
+  describe('with the grunt hook set to boolean false', function() {
+    var sails = $Sails.load({hooks: {grunt: false}});
+    it('should expose hooks on the `sails` global', function() {
+      sails.hooks.should.be.an.Object;
+    });
+    it('should expose all the core hooks except for Grunt', function() {
+      var intersection = _.intersection(_.keys(sails.hooks), _.keys(constants.EXPECTED_DEFAULT_HOOKS));
+      assert.deepEqual(intersection, _.without(_.keys(constants.EXPECTED_DEFAULT_HOOKS), 'grunt', 'i18n'),  'Missing expected default hooks');
+    });
+  });
+
+  describe('with the grunt hook set to the string "false"', function() {
+    var sails = $Sails.load({hooks: {grunt: "false"}});
+    it('should expose hooks on the `sails` global', function() {
+      sails.hooks.should.be.an.Object;
+    });
+    it('should expose all the core hooks except for Grunt', function() {
+      var intersection = _.intersection(_.keys(sails.hooks), _.keys(constants.EXPECTED_DEFAULT_HOOKS));
+      assert.deepEqual(intersection, _.without(_.keys(constants.EXPECTED_DEFAULT_HOOKS), 'grunt', 'i18n'),  'Missing expected default hooks');
+    });
+  });
+
 
 
 
@@ -59,7 +85,7 @@ describe('app.initializeHooks()', function() {
     });
     it('should also expose the expected core hooks', function() {
       var intersection = _.intersection(Object.keys(sails.hooks), _.keys(constants.EXPECTED_DEFAULT_HOOKS));
-      assert.deepEqual(intersection, _.keys(constants.EXPECTED_DEFAULT_HOOKS),  'Missing expected default hooks');
+      assert.deepEqual(intersection, _.without(_.keys(constants.EXPECTED_DEFAULT_HOOKS), 'i18n'),  'Missing expected default hooks');
     });
   });
 
@@ -104,13 +130,13 @@ describe('app.initializeHooks()', function() {
     });
 
     it('should add a `foo` key to sails config', function() {
-      assert(sails.config.foo == 'bar');
+      assert(sails.config.foo === 'bar');
     });
     it('should add an `inky.dinky` key to sails config', function() {
-      assert(sails.config.inky.dinky == 'doo');
+      assert(sails.config.inky.dinky === 'doo');
     });
     it('should keep the existing `inky.pinky` key to sails config', function() {
-      assert(sails.config.inky.pinky == 'boo');
+      assert(sails.config.inky.pinky === 'boo');
     });
 
   });
@@ -126,13 +152,13 @@ describe('app.initializeHooks()', function() {
     });
 
     it('should add a `foo` key to sails config', function() {
-      assert(sails.config.foo == 'bar');
+      assert(sails.config.foo === 'bar');
     });
     it('should add an `inky.dinky` key to sails config', function() {
-      assert(sails.config.inky.dinky == 'doo');
+      assert(sails.config.inky.dinky === 'doo');
     });
     it('should keep the existing `inky.pinky` key to sails config', function() {
-      assert(sails.config.inky.pinky == 'boo');
+      assert(sails.config.inky.pinky === 'boo');
     });
 
   });
@@ -146,7 +172,7 @@ describe('app.initializeHooks()', function() {
     });
 
     it('should add a `hookConfigLikeABoss` key to sails config', function() {
-      assert(sails.config.hookConfigLikeABoss == 'oh yeah!');
+      assert(sails.config.hookConfigLikeABoss === 'oh yeah!');
     });
 
   });
@@ -176,15 +202,25 @@ describe('app.initializeHooks()', function() {
     });
 
     it('should add two `/foo` routes to the sails config', function() {
-      var boundRoutes = sails.router._privateRouter.routes['get'];
-      assert(_.where(boundRoutes, {path: "/foo", method: "get"}).length === 3);
+      var fooRoutes = 0;
+      _.each(sails.router._privateRouter.stack, function(stack){
+        if(stack.route.path === '/foo' && stack.route.methods.get === true){
+          fooRoutes += 1;
+        }
+      });
+      assert(fooRoutes === 3);
     });
 
     it('should bind the routes in the correct order', function(done) {
-      supertest(sails.router._privateRouter)
-          .get('/foo')
-          .expect(200, 'abc')
-          .end(done);
+      sails.request({
+        method: 'get',
+        url: '/foo'
+      }, function (err, res, body) {
+        if (err) return done(err);
+        assert.equal(res.statusCode, 200);
+        assert.equal(body, 'abc');
+        return done();
+      });
     });
 
   });
@@ -200,27 +236,37 @@ describe('app.initializeHooks()', function() {
     });
 
     it('should add four `/foo` routes to the sails config', function() {
-      var boundRoutes = sails.router._privateRouter.routes['get'];
-      assert(_.where(boundRoutes, {path: "/foo", method: "get"}).length === 5);
+      var fooRoutes = 0;
+      _.each(sails.router._privateRouter.stack, function(stack){
+        if(stack.route.path === '/foo' && stack.route.methods.get === true){
+          fooRoutes += 1;
+        }
+      });
+      assert(fooRoutes === 5);
     });
 
     it('should bind the routes in the correct order', function(done) {
-      supertest(sails.router._privateRouter)
-          .get('/foo')
-          .expect(200, 'abcde')
-          .end(done);
+      sails.request({
+        method: 'get',
+        url: '/foo'
+      }, function (err, res, body) {
+        if (err) return done(err);
+        assert.equal(res.statusCode, 200);
+        assert.equal(body, 'abcde');
+        return done();
+      });
     });
 
   });
 
   // describe('configured with a circular hook dependency', function () {
 
-  // 	// NOTE #1: not currently implemented
-  // 	// NOTE #2: not currently possible
-  // 	// (should be possible after merging @ragulka's PR)
-  // 	// $Sails.load();
+  //  // NOTE #1: not currently implemented
+  //  // NOTE #2: not currently possible
+  //  // (should be possible after merging @ragulka's PR)
+  //  // $Sails.load();
 
-  // 	it('should throw a fatal error');
+  //  it('should throw a fatal error');
   // });
 
 

@@ -5,23 +5,23 @@
  */
 module.exports = {
 
-	// Extremely simple hook that doesn't do anything.
-	NOOP: function (sails) {
-		return { identity: 'noop' };
-	},
+  // Extremely simple hook that doesn't do anything.
+  NOOP: function (sails) {
+    return { identity: 'noop' };
+  },
 
-	// Depends on 'noop' hook
-	NOOP2: function (sails) {
-		return {
-			// TODO: indicate dependency on 'noop' hook
-			identity: 'noop2'
-		};
-	},
+  // Depends on 'noop' hook
+  NOOP2: function (sails) {
+    return {
+      // TODO: indicate dependency on 'noop' hook
+      identity: 'noop2'
+    };
+  },
 
-	// Deliberately rotten hook- it throws.
-	SPOILED_HOOK: function (sails) {
-		throw new Error('smells nasty');
-	},
+  // Deliberately rotten hook- it throws.
+  SPOILED_HOOK: function (sails) {
+    throw new Error('smells nasty');
+  },
 
   // Hook to test `defaults` object
   DEFAULTS_OBJ: function(sails) {
@@ -81,14 +81,14 @@ module.exports = {
       identity: 'routes',
       routes: {
         before: {
-          "GET /foo": function(req, res, next) {
-            sails.config.foo = "a";
+          'GET /foo': function(req, res, next) {
+            sails.config.foo = 'a';
             next();
           }
         },
         after: {
-          "GET /foo": function(req, res, next) {
-            sails.config.foo = sails.config.foo + "c";
+          'GET /foo': function(req, res, next) {
+            sails.config.foo = sails.config.foo + 'c';
             res.send(sails.config.foo);
           }
         }
@@ -103,13 +103,13 @@ module.exports = {
       initialize: function(cb) {
         sails.on('router:before', function() {
           sails.router.bind('GET /foo', function(req, res, next) {
-            sails.config.foo = sails.config.foo + "b";
+            sails.config.foo = sails.config.foo + 'b';
             next();
           });
         });
         sails.on('router:after', function() {
           sails.router.bind('GET /foo', function(req, res, next) {
-            sails.config.foo = sails.config.foo + "e";
+            sails.config.foo = sails.config.foo + 'e';
             res.send(sails.config.foo);
           });
         });
@@ -117,14 +117,14 @@ module.exports = {
       },
       routes: {
         before: {
-          "GET /foo": function(req, res, next) {
-            sails.config.foo = "a";
+          'GET /foo': function(req, res, next) {
+            sails.config.foo = 'a';
             next();
           }
         },
         after: {
-          "GET /foo": function(req, res, next) {
-            sails.config.foo = sails.config.foo + "d";
+          'GET /foo': function(req, res, next) {
+            sails.config.foo = sails.config.foo + 'd';
             next();
           }
         }

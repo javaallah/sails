@@ -4,7 +4,7 @@
 
 var assert = require('assert');
 var util = require('util');
-var _ = require('lodash');
+var _ = require('@sailshq/lodash');
 var async = require('async');
 var Sails = require('../../lib').Sails;
 
@@ -24,7 +24,7 @@ describe('req.session', function (){
       ],
       session: {
         adapter: 'memory',
-        key: 'sails.sid',
+        name: 'sails.sid',
         secret: 'af9442683372850a85a87150c47b4a31'
       }
     }, done);
@@ -39,7 +39,6 @@ describe('req.session', function (){
 
     before(function setupTestRoute(){
       app.post('/sessionTest', function (req, res){
-        // console.log('RAN POST /sessionTest route...');
         doesSessionExist = !!req.session;
         isSessionAnObject = _.isObject(req.session);
         req.session.something = 'some string';
@@ -47,72 +46,95 @@ describe('req.session', function (){
       });
 
       app.get('/sessionTest', function (req, res){
-        // console.log('RAN GET /sessionTest route...');
         doesSessionExist = !!req.session;
         isSessionAnObject = _.isObject(req.session);
         doesTestPropertyStillExist = req.session.something === 'some string';
         res.send();
       });
 
-    });
-
-    it('should exist', function (done) {
-      app.request({
-        url: '/sessionTest',
-        method: 'POST',
-        params: {},
-        headers: {}
-      }, function (err, res, body){
-        if (err) return done(err);
-        if (res.statusCode !== 200) return done(new Error('Expected 200 status code'));
-        if (!doesSessionExist) return done(new Error('req.session should exist.'));
-        if (!isSessionAnObject) return done(new Error('req.session should be an object.'));
-        return done();
+      app.get('/sails.io.js', function (req, res){
+        doesSessionExist = !!req.session;
+        res.send();
       });
+
     });
 
+    describe('with routes disabled by the default `isSessionDisabled` function', function() {
 
-    //
-    // To test:
-    //
-    // DEBUG=express-session mocha test/unit/req.session.test.js -b -g 'should persist'
-    //
-
-    it('should persist data between requests', function (done){
-      app.request({
-        url: '/sessionTest',
-        method: 'POST',
-        params: {},
-        headers: {}
-      }, function (err, clientRes, body){
-        if (err) return done(err);
-        // console.log('\n* * *\nclientRes.headers:\n',clientRes.headers,'\n');
-        if (clientRes.statusCode !== 200) return done(new Error('Expected 200 status code'));
-        if (!doesSessionExist) return done(new Error('req.session should exist.'));
-        if (!isSessionAnObject) return done(new Error('req.session should be an object.'));
-
-        // console.log('Cookie:',clientRes.headers['set-cookie']);
+      it('should not exist', function (done) {
         app.request({
-          url: '/sessionTest',
+          url: '/sails.io.js',
           method: 'GET',
           params: {},
-          headers: {
-            cookie: clientRes.headers['set-cookie']
-          }
-        }, function (err, clientRes, body){
+          headers: {}
+        }, function (err, res, body){
           if (err) return done(err);
-          // console.log('\n\n\n----------callback-------\n');
-          // console.log('err', err);
-          // console.log('clientRes', clientRes);
-          // console.log('body', body);
-          if (clientRes.statusCode !== 200) return done(new Error('Expected 200 status code'));
-          if (!doesSessionExist) return done(new Error('req.session should exist.'));
-          if (!isSessionAnObject) return done(new Error('req.session should be an object.'));
-          if (!doesTestPropertyStillExist) return done(new Error('`req.session.something` should still exist for subsequent requests.'));
+          if (res.statusCode !== 200) return done(new Error('Expected 200 status code'));
+          if (doesSessionExist) return done(new Error('req.session should not exist.'));
+          if (res.headers['set-cookie']) return done(new Error('Should not have a `set-cookie` header in the response.'));
           return done();
         });
       });
+
     });
+
+    describe('with routes NOT disabled by the default `isSessionDisabled` function', function() {
+
+      it('should exist', function (done) {
+        app.request({
+          url: '/sessionTest',
+          method: 'POST',
+          params: {},
+          headers: {}
+        }, function (err, res, body){
+          if (err) return done(err);
+          if (res.statusCode !== 200) return done(new Error('Expected 200 status code'));
+          if (!doesSessionExist) return done(new Error('req.session should exist.'));
+          if (!isSessionAnObject) return done(new Error('req.session should be an object.'));
+          return done();
+        });
+      });
+
+
+      //
+      // To test:
+      //
+      // DEBUG=express-session mocha test/unit/req.session.test.js -b -g 'should persist'
+      //
+
+      it('should persist data between requests', function (done){
+        app.request({
+          url: '/sessionTest',
+          method: 'POST',
+          params: {},
+          headers: {}
+        }, function (err, clientRes, body){
+          if (err) return done(err);
+          if (clientRes.statusCode !== 200) return done(new Error('Expected 200 status code'));
+          if (!doesSessionExist) return done(new Error('req.session should exist.'));
+          if (!isSessionAnObject) return done(new Error('req.session should be an object.'));
+
+          app.request({
+            url: '/sessionTest',
+            method: 'GET',
+            params: {},
+            headers: {
+              cookie: clientRes.headers['set-cookie']
+            }
+          }, function (err, clientRes, body){
+            if (err) return done(err);
+            if (clientRes.statusCode !== 200) return done(new Error('Expected 200 status code'));
+            if (!doesSessionExist) return done(new Error('req.session should exist.'));
+            if (!isSessionAnObject) return done(new Error('req.session should be an object.'));
+            if (!doesTestPropertyStillExist) return done(new Error('`req.session.something` should still exist for subsequent requests.'));
+            return done();
+          });
+        });
+      });
+
+    });
+
+
 
   });
 

@@ -1,164 +1,252 @@
-var assert = require('assert');
-var fs = require('fs');
-var wrench = require('wrench');
+/**
+ * Module dependencies
+ */
+
+var path = require('path');
+var util = require('util');
+var tmp = require('tmp');
 var request = require('request');
-var exec = require('child_process').exec;
-var spawn = require('child_process').spawn;
+var assert = require('assert');
+var _ = require('@sailshq/lodash');
+var MProcess = require('machinepack-process');
+var Filesystem = require('machinepack-fs');
+var testSpawningSailsChildProcessInCwd = require('../helpers/test-spawning-sails-child-process-in-cwd');
+var testSpawningSailsLiftChildProcessInCwd = require('../helpers/test-spawning-sails-lift-child-process-in-cwd');
+var appHelper = require('./helpers/appHelper');
 
-// Make existsSync not crash on older versions of Node
-fs.existsSync = fs.existsSync || require('path').existsSync;
-
-describe('Starting sails server with lift', function() {
-	var sailsBin = './bin/sails.js';
-	var appName = 'testApp';
-	var sailsServer;
-
-	before(function() {
-		if (fs.existsSync(appName)) {
-			wrench.rmdirSyncRecursive(appName);
-		}
-	});
-
-	after(function() {
-		if (fs.existsSync(appName)) {
-			wrench.rmdirSyncRecursive(appName);
-		}
-	});
-
-	describe('in an empty directory', function() {
-
-		before(function() {
-			// Make empty folder and move into it
-			fs.mkdirSync('empty');
-			process.chdir('empty');
-			sailsBin = '.' + sailsBin;
-		});
-
-		after(function() {
-			// Delete empty folder and move out of it
-			process.chdir('../');
-			fs.rmdirSync('empty');
-			sailsBin = sailsBin.substr(1);
-		});
-
-		// TODO: make this test more useful
-		// it('should throw an error', function(done) {
-
-		// 	sailsServer = spawn(sailsBin, ['lift']);
-
-		// 	sailsServer.stderr.on('data', function(data) {
-		// 		var dataString = data + '';
-		// 		assert(dataString.indexOf('[err]') !== -1);
-		// 		sailsServer.stderr.removeAllListeners('data');
-		// 		sailsServer.kill();
-		// 		done();
-		// 	});
-		// });
-	});
-
-	describe('in an sails app directory', function() {
-
-		it('should start server without error', function(done) {
-
-			exec(sailsBin + ' new ' + appName, function(err) {
-				if (err) done(new Error(err));
-
-				// Move into app directory
-				process.chdir(appName);
-				sailsBin = '.' + sailsBin;
-
-				sailsServer = spawn(sailsBin, ['lift', '--port=1342']);
-
-				sailsServer.stdout.on('data', function(data) {
-					var dataString = data + '';
-					assert(dataString.indexOf('error') === -1);
-					sailsServer.stdout.removeAllListeners('data');
-					sailsServer.kill();
-					// Move out of app directory
-					process.chdir('../');
-					done();
-				});
-			});
-		});
-
-		it('should respond to a request to port 1342 with a 200 status code', function(done) {
-			process.chdir(appName);
-			sailsServer = spawn(sailsBin, ['lift', '--port=1342']);
-			sailsServer.stdout.on('data', function(data){
-				var dataString = data + '';
-				// Server has finished starting up
-				if (dataString.match(/Server lifted/)) {
-					sailsServer.stdout.removeAllListeners('data');
-					setTimeout(function(){
-						request('http://localhost:1342/', function(err, response) {
-							if (err) {
-								sailsServer.kill();
-								done(new Error(err));
-							}
-
-							assert(response.statusCode === 200);
-							sailsServer.kill();
-							process.chdir('../');
-							done();
-						});
-					},1000);
-				}
-			});
-		});
-	});
-
-	describe('with command line arguments', function() {
-		afterEach(function() {
-			sailsServer.stderr.removeAllListeners('data');
-			sailsServer.kill();
-			process.chdir('../');
-		});
-
-		it('--prod should change the environment to production', function(done) {
-
-			// Move into app directory
-			process.chdir(appName);
-
-			// Overrwrite session config file
-			// to set session adapter:null ( to prevent warning message from appearing on command line )
-			fs.writeFileSync('config/session.js', 'module.exports.session = { adapter: null }');
+tmp.setGracefulCleanup();
 
 
-			sailsServer = spawn(sailsBin, ['lift', '--prod', '--port=1342']);
 
-			sailsServer.stderr.on('data', function(data) {
-				var dataString = data + '';
-				if (dataString.indexOf('production') !== -1) {
+describe('Starting sails server with `sails lift`, `sails console` or `node app.js`', function() {
 
-					done();
-				}
-			});
-		});
+  // Track the location of the Sails CLI, as well as the current working directory
+  // before we stop hopping about all over the place.
+  var originalCwd = process.cwd();
+  var pathToSailsCLI = path.resolve(__dirname, '../../bin/sails.js');
 
-		it('--dev should change the environment to development', function(done) {
 
-			// Move into app directory
-			process.chdir(appName);
+  describe('in the directory of a newly-generated sails app', function() {
 
-			// Change environment to production in config file
-			fs.writeFileSync('config/application.js', 'module.exports = ' + JSON.stringify({
-				appName: 'Sails Application',
-				port: 1342,
-				environment: 'production',
-				log: {
-					level: 'info'
-				}
-			}));
+    var pathToTestApp;
 
-			sailsServer = spawn(sailsBin, ['lift', '--dev', '--port=1342']);
+    before(function(done) {
+      // Create a temp directory.
+      var tmpDir = tmp.dirSync({gracefulCleanup: true, unsafeCleanup: true});
+      // Switch to the temp directory.
+      process.chdir(tmpDir.name);
+      pathToTestApp = path.resolve(tmpDir.name, 'testApp');
+      // Create a new Sails app.
+      MProcess.executeCommand({
+        command: util.format('node %s new %s --fast --without=lodash,async', pathToSailsCLI, 'testApp'),
+      }).exec(function(err) {
+        if (err) {return done(err);}
+        appHelper.linkDeps(pathToTestApp);
+        appHelper.linkSails(pathToTestApp);
+        return done();
+      });
+    });
 
-			sailsServer.stderr.on('data', function(data) {
-				var dataString = data + '';
-				if (dataString.indexOf('development') !== -1) {
 
-					done();
-				}
-			});
-		});
-	});
+    // And CD in.
+    before(function (){
+      process.chdir(pathToTestApp);
+      Filesystem.writeSync({
+        force: true,
+        destination: 'api/controllers/getconf.js',
+        string: 'module.exports = function (req, res) { return res.json(sails.config); }'
+      }).execSync();
+      Filesystem.writeSync({
+        force: true,
+        destination: 'config/routes.js',
+        string: 'module.exports.routes = { \'get /getconf\': \'getconf\' };'
+      }).execSync();
+
+    });
+
+    // Test `sails lift` in the CWD with env vars for config.
+    describe('running `sails lift`', function (){
+      testSpawningSailsLiftChildProcessInCwd({
+        pathToSailsCLI: pathToSailsCLI,
+        liftCliArgs: ['--hooks.pubsub=false'],
+        envVars: _.extend({ 'sails_foo__bar': '{"abc": 123}'}, process.env),
+        httpRequestInstructions: {
+          method: 'GET',
+          uri: 'http://localhost:1337/getconf',
+        },
+        fnWithAdditionalTests: function (){
+          it('should humanize the config passed in via env vars', function (done){
+            request({
+              method: 'GET',
+              uri: 'http://localhost:1337/getconf',
+            }, function(err, response, body) {
+              if (err) { return done(err); }
+
+              try {
+
+                assert.equal(response.statusCode, 200);
+
+                try {
+                  body = JSON.parse(body);
+                } catch(e){
+                  throw new Error('Could not parse as JSON: '+e.stack+'\nHere is what I attempted to parse: '+util.inspect(body, {depth:null})+'');
+                }
+
+                assert.equal(body.foo && body.foo.bar && body.foo.bar.abc, 123);
+
+              } catch (e) { return done(e); }
+
+              return done();
+            });
+          });
+        }
+      });
+    });
+
+    // Test `node app.js` in the CWD with env vars for config.
+    describe('running `node app.js`', function (){
+
+      testSpawningSailsChildProcessInCwd({
+        cliArgs: ['app.js', '--hooks.pubsub=false'],
+        envVars: _.extend({ 'sails_foo__bar': '{"abc": 123}'}, process.env),
+        fnWithAdditionalTests: function (){
+          it('should humanize the config passed in via env vars', function (done){
+            request({
+              method: 'GET',
+              uri: 'http://localhost:1337/getconf',
+            }, function(err, response, body) {
+              if (err) { return done(err); }
+              try {
+
+                assert.equal(response.statusCode, 200);
+
+                try {
+                  body = JSON.parse(body);
+                } catch(e){
+                  throw new Error('Could not parse as JSON: '+e.stack+'\nHere is what I attempted to parse: '+util.inspect(body, {depth:null})+'');
+                }
+
+                assert.equal(body.foo && body.foo.bar && body.foo.bar.abc, 123);
+
+              } catch (e) { return done(e); }
+              return done();
+            });
+          });
+        }
+      });
+
+    });
+
+    // Test `sails console` in the CWD with env vars for config.
+    describe('running `sails console`', function (){
+
+      testSpawningSailsChildProcessInCwd({
+        cliArgs: [pathToSailsCLI, 'console', '--hooks.pubsub=false'],
+        envVars: _.extend({ 'sails_foo__bar': '{"abc": 123}'}, process.env),
+        fnWithAdditionalTests: function (){
+          it('should humanize the config passed in via env vars', function (done){
+            request({
+              method: 'GET',
+              uri: 'http://localhost:1337/getconf',
+            }, function(err, response, body) {
+              if (err) { return done(err); }
+              try {
+
+                assert.equal(response.statusCode, 200);
+
+                try {
+                  body = JSON.parse(body);
+                } catch(e){
+                  throw new Error('Could not parse as JSON: '+e.stack+'\nHere is what I attempted to parse: '+util.inspect(body, {depth:null})+'');
+                }
+
+                assert.equal(body.foo && body.foo.bar && body.foo.bar.abc, 123);
+
+              } catch (e) { return done(e); }
+              return done();
+            });
+          });
+        }
+      });
+
+    });
+
+    // Test `sails lift --port=1492` in the CWD.
+    describe('running `sails lift --port=1492`', function (){
+      testSpawningSailsLiftChildProcessInCwd({
+        pathToSailsCLI: pathToSailsCLI,
+        liftCliArgs: [
+          '--port=1492',
+          '--hooks.pubsub=false'
+        ],
+        httpRequestInstructions: {
+          method: 'GET',
+          uri: 'http://localhost:1492/getconf',
+        },
+        fnWithAdditionalTests: function (){
+          it('should NOT be able to contact localhost:1337 anymore', function (done){
+            request({
+              method: 'GET',
+              uri: 'http://localhost:1337',
+            }, function(err, response, body) {
+              if (err) { return done(); }
+              return done(new Error('Should not be able to communicate with locahost:1337 anymore.... Here is the response we received:'+util.inspect(response,{depth:null})+'\n\n* * Troublehooting * *\n Perhaps the Sails app running in the child process was not properly cleaned up when it received SIGTERM?  Or could be a problem with the tests.  Find out all this and more after you fix it.'));
+            });
+          });
+        }
+      });
+    });
+
+
+    // And CD back to where we were before.
+    after(function () {
+      process.chdir(originalCwd);
+    });
+
+  });//</in the directory of a newly-generated sails app>
+
+
+
+
+
+
+  describe('in an empty directory', function() {
+
+    var pathToEmptyDirectory;
+
+    before(function() {
+      // Create a temp directory.
+      var tmpDir = tmp.dirSync({gracefulCleanup: true, unsafeCleanup: true});
+      // Switch to the temp directory.
+      process.chdir(tmpDir.name);
+      pathToEmptyDirectory = tmpDir.name;
+    });
+
+    // And CD in.
+    before(function (){
+      process.chdir(pathToEmptyDirectory);
+    });
+
+    // Now inject a describe block that tests lifing Sails in the CWD using
+    // our wonderful little helper: "testSpawningSailsLiftChildProcessInCwd()".
+    describe('running `sails lift`', function (){
+      testSpawningSailsLiftChildProcessInCwd({
+        pathToSailsCLI: pathToSailsCLI,
+        liftCliArgs: ['--hooks.pubsub=false'],
+        httpRequestInstructions: {
+          method: 'GET',
+          uri: 'http://localhost:1337',
+          expectedStatusCode: 404
+        }
+      });
+    });
+
+    // And CD back to whererever we were before.
+    after(function () {
+      process.chdir(originalCwd);
+    });
+
+  });//</in an empty directory>
+
+
 });

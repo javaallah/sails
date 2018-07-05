@@ -1,140 +1,180 @@
+/**
+ * Test dependencies
+ */
+
 var assert = require('assert');
 var httpHelper = require('./helpers/httpHelper.js');
 var appHelper = require('./helpers/appHelper');
 var path = require('path');
 var fs = require('fs');
 
+
+
+
+//  ██╗ ██╗ █████╗ ███╗   ██╗    ██╗  ██╗ ██████╗  ██████╗ ██╗  ██╗
+//  ██║███║██╔══██╗████╗  ██║    ██║  ██║██╔═══██╗██╔═══██╗██║ ██╔╝
+//  ██║╚██║╚█████╔╝██╔██╗ ██║    ███████║██║   ██║██║   ██║█████╔╝
+//  ██║ ██║██╔══██╗██║╚██╗██║    ██╔══██║██║   ██║██║   ██║██╔═██╗
+//  ██║ ██║╚█████╔╝██║ ╚████║    ██║  ██║╚██████╔╝╚██████╔╝██║  ██╗
+//  ╚═╝ ╚═╝ ╚════╝ ╚═╝  ╚═══╝    ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝
+//
+//   ██╗ ██████╗ ██╗   ██╗███████╗██████╗  █████╗ ██╗     ██╗     ██╗
+//  ██╔╝██╔═══██╗██║   ██║██╔════╝██╔══██╗██╔══██╗██║     ██║     ╚██╗
+//  ██║ ██║   ██║██║   ██║█████╗  ██████╔╝███████║██║     ██║      ██║
+//  ██║ ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗██╔══██║██║     ██║      ██║
+//  ╚██╗╚██████╔╝ ╚████╔╝ ███████╗██║  ██║██║  ██║███████╗███████╗██╔╝
+//   ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝
+//
 describe('i18n ::', function() {
 
   var appName = 'testApp';
 
+  var sailsApp;
+  before(function(done) {
+    appHelper.build(done);
+  });
+
   beforeEach(function(done) {
     appHelper.lift({
-      verbose: false
+      log: { level: 'silent' },
+      routes: {
+        '/test_req_getlocale': function(req, res) {
+          res.send(req.getLocale());
+        },
+        '/test_req_setlocale': function(req, res) {
+          req.setLocale('es');
+          res.send(sailsApp.i18n('Welcome'));
+        },
+      }
     }, function(err, sails) {
       if (err) {
-        throw new Error(err);
+        return done(err);
       }
-      sailsprocess = sails;
-      sailsprocess.once('hook:http:listening', done);
+      sailsApp = sails;
+      return done();
     });
   });
 
   afterEach(function(done) {
-    sailsprocess.kill(done);
-  });
-
-  before(function(done) {
-    this.timeout(5000);
-    appHelper.build(done);
+    sailsApp.lower(done);
   });
 
   after(function() {
-    // console.log('before `chdir ../`' + ', cwd was :: ' + process.cwd());
     process.chdir('../');
-    // console.log('after `chdir ../`' + ', cwd was :: ' + process.cwd());
     appHelper.teardown();
   });
 
-  describe('with locales generate by sails-generate-backend', function () {
-    it('should say "Welcome" by default', function(done) {
-      assert(sailsprocess.__('Welcome') == 'Welcome');
-      done();
+  describe('with locales generate by sails-generate-backend', function() {
+    it('should say "Welcome" by default', function() {
+      assert.equal(sailsApp.__('Welcome'), 'Welcome');
     });
 
-    it('should say "Welcome" in English', function(done) {
-      assert(sailsprocess.__({
-        phrase: 'Welcome',
-        locale: 'en'
-      }) == 'Welcome');
-      done();
+    it('should work using `i18n()` as well as `__()`', function() {
+      assert.equal(sailsApp.i18n('Welcome'), 'Welcome');
     });
 
-    it('should say "Bienvenido" in Spanish', function(done) {
-      assert(sailsprocess.__({
-        phrase: 'Welcome',
-        locale: 'es'
-      }) == 'Bienvenido');
-      done();
+    it('should say "Welcome" in English', function() {
+      sailsApp.hooks.i18n.setLocale('en');
+      assert.equal(sailsApp.__('Welcome'), 'Welcome');
     });
 
-    it('should say "Bienvenue" in French', function(done) {
-      assert(sailsprocess.__({
-        phrase: 'Welcome',
-        locale: 'fr'
-      }) == 'Bienvenue');
-      done();
+    it('should say "Bienvenido" in Spanish', function() {
+      sailsApp.hooks.i18n.setLocale('es');
+      assert.equal(sailsApp.__('Welcome'), 'Bienvenido');
     });
 
-    it('should say "Willkommen" in German', function(done) {
-        //see https://github.com/balderdashy/sails-generate-backend/pull/10
-        assert(sailsprocess.__({
-            phrase: 'Welcome',
-            locale: 'de'
-        }) == 'Willkommen' || sailsprocess.__({
-            phrase: 'Welcome',
-            locale: 'de'
-        }) == 'Wilkommen');
-        done();
+    it('should support `req.getLocale()` to get the current locale.', function(done) {
+      sailsApp.hooks.i18n.setLocale('es');
+      sailsApp.request('GET /test_req_getlocale', function(err, res, body) {
+        if (err) { return done(err); }
+        assert.equal(body, 'es');
+        return done();
+      });
+    });
+
+    it('should support `req.setLocale()` to set the current locale.', function(done) {
+      sailsApp.request('GET /test_req_setlocale', function(err, res, body) {
+        if (err) { return done(err); }
+        assert.equal(body, 'Bienvenido');
+        return done();
+      });
+    });
+
+    it('should say "Bienvenue" in French', function() {
+      sailsApp.hooks.i18n.setLocale('fr');
+      assert.equal(sailsApp.__('Welcome'), 'Bienvenue');
+    });
+
+    it('should say "Willkommen" in German', function() {
+      sailsApp.hooks.i18n.setLocale('de');
+      assert.equal(sailsApp.__('Welcome'), 'Willkommen');
     });
   });
-});
+
+});//</describe i18n tests>
+
+
+
+
+//  ██╗ ██╗ █████╗ ███╗   ██╗     ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗
+//  ██║███║██╔══██╗████╗  ██║    ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝
+//  ██║╚██║╚█████╔╝██╔██╗ ██║    ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
+//  ██║ ██║██╔══██╗██║╚██╗██║    ██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
+//  ██║ ██║╚█████╔╝██║ ╚████║    ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
+//  ╚═╝ ╚═╝ ╚════╝ ╚═╝  ╚═══╝     ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝
+//
 describe('i18n Config ::', function() {
 
   var appName = 'testApp';
+  var sailsApp;
 
-  beforeEach(function(done) {
-    appHelper.lift({
-      verbose: false
-    }, function(err, sails) {
-      if (err) {
-        throw new Error(err);
-      }
-      sailsprocess = sails;
-      sailsprocess.once('hook:http:listening', done);
-    });
-  });
+  describe('with locales generate by config', function() {
 
-  afterEach(function(done) {
-    sailsprocess.kill(done);
-  });
-
-  before(function(done) {
-    this.timeout(5000);
-    appHelper.build(done);
-  });
-
-  after(function() {
-    // console.log('before `chdir ../`' + ', cwd was :: ' + process.cwd());
-    process.chdir('../');
-    // console.log('after `chdir ../`' + ', cwd was :: ' + process.cwd());
-    appHelper.teardown();
-  });
- 
-  describe('with locales generate by config', function () {
-    
-    before(function() {
-      var config = "module.exports.i18n = { defaultLocale: 'de',updateFiles : true };";
-      fs.writeFileSync(path.resolve('../', appName, 'config/i18n.js'), config);
-    });
-    
-    it('should say "Willkommen" by defaultLocale', function(done) {
-      //see https://github.com/balderdashy/sails-generate-backend/pull/10
-      assert(sailsprocess.__('Welcome') == 'Willkommen' || sailsprocess.__('Welcome') == 'Wilkommen'); 
-      done();
-    });
-    
-    it('should autoupdate the file', function(done) {
-      sailsprocess.__('Login');
-      fs.readFile(path.resolve('../', appName, 'config/locales/de.json'),'utf8', function read(err, data) {
+    before(function (done) {
+      appHelper.build(function(err) {
+        if (err) {return done(err);}
+        var config = 'module.exports.i18n = { locales: [\'en\', \'de\'], defaultLocale: \'de\' };';
+        fs.writeFileSync(path.resolve('../', appName, 'config/i18n.js'), config);
+        appHelper.lift({
+          log: {level: 'silent'}
+        }, function(err, sails) {
           if (err) {
-              throw err;
-          }else{
-            var de = JSON.parse(data);
-            assert(de['Login'] == 'Login');
-            done();
+            return done(err);
           }
+          sailsApp = sails;
+          return done();
+        });
+      });
+    });
+
+    after(function(done) {
+      sailsApp.lower(function() {
+        process.chdir('../');
+        appHelper.teardown();
+        return done();
+      });
+    });
+
+    it('should say "Willkommen" by defaultLocale', function() {
+      //see https://github.com/balderdashy/sails-generate-backend/pull/10
+      assert(sailsApp.__('Welcome') === 'Willkommen');
+    });
+
+    it('should autoupdate the file', function(done) {
+      sailsApp.__('Login');
+      fs.readFile(path.resolve('../', appName, 'config/locales/de.json'), 'utf8', function read(err, data) {
+        if (err) {
+          return done(err);
+        }
+
+        var de = JSON.parse(data);
+        assert(de['Login'] === 'Login');
+        return done();
+
       });
     });
   });
+
 });
+
+

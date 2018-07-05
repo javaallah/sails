@@ -1,8 +1,8 @@
 module.exports = {
 
   watch: function(req, res) {
-    Pet.watch(req);
-    res.send(200);
+    req._sails.models.pet.watch(req);
+    res.sendStatus(200);
   }
 
 };

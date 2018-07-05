@@ -1,36 +1,36 @@
 module.exports = {
 
   watch: function(req, res) {
-    User.watch(req);
-    res.send(200);
+    req._sails.models.user.watch(req);
+    res.sendStatus(200);
   },
 
   message: function(req, res) {
-    User.findOne({
+    req._sails.models.user.findOne({
       user_id: 1
     }, function(err, user) {
-      if (err) return res.json(500, {
-        error: err
-      });
+      if (err) {
+        return res.status(500).json({
+          error: err
+        });
+      }
       else if (!user) {
-        return res.json(404,{
+        return res.status(404).json({
           error: 'Expected specified user (with user_id=1) to exist...'
         });
       } else {
-        User.message(user, {
+        req._sails.models.user.publish([user.user_id], {
           greeting: 'hello'
         }, req);
-        return res.send(200);
+        return res.sendStatus(200);
       }
     });
   },
 
   subscribe: function(req, res) {
 
-    User.subscribe(req, {
-      user_id: req.param('id')
-    }, req.param('context'));
-    res.send(200);
+    req._sails.models.user.subscribe(req, [req.param('id')]);
+    res.sendStatus(200);
   }
 
 

@@ -37,7 +37,7 @@ If you need a special event in your hook, you *will* want to namespace it.  For 
 
 In my hook's initialize method, I might have the following:
 
-```javscript
+```javascript
 
 // Wait until all the middleware from this app's controllers have loaded
 sails.after('hook:controllers:loaded', function () {
@@ -96,7 +96,8 @@ Should receive a single argument, "routeObj", which looks like:
 {
   path: 'String',
   target: function theFnBoundtoTheRoute (req, res, next) {},
-  verb: 'String'
+  verb: 'String',
+  options: 'Object'
 }
 ```
 
@@ -150,7 +151,7 @@ Fires your handler **NEXT TIME** the event is triggered and **EVERY TIME AFTERWA
 
 ```javascript
 sails.on('hook:yourHookID:someEvent', function yourEventHandler ( /* a, b, c, ..., z */ ) {
-	// your implementation
+  // your implementation
 });
 ```
 
@@ -160,7 +161,7 @@ Fires your handler **NEXT TIME** the specified event is triggered, and then stop
 
 ```javascript
 sails.once('hook:yourHookID:someEvent', function yourEventHandler ( /* a, b, c, ..., z */ ) {
-	// your implementation
+  // your implementation
 });
 ```
 
@@ -173,7 +174,7 @@ Useful for checking whether some state has been achieved yet.
 
 ```javascript
 sails.after('hook:yourHookID:someEvent', function yourEventHandler ( /* a, b, c, ..., z */ ) {
-	// your implementation
+  // your implementation
 });
 ```
 
@@ -181,13 +182,13 @@ You can actually wait for several events using `.after` as well:
 
 ```javascript
 sails.after(['hook:yourHookID:someEvent', 'hook:someOtherHookID:someOtherEvent'], function yourEventHandler ( /* a, b, c, ..., z */ ) {
-	// your implementation
+  // your implementation
 });
 ```
 
 <!--
 
-This can be omitted for now-- it really shouldn't be used in userspace.
+This can be omitted for now- it really shouldn't be used in userspace.
 May be deprecated, API may change.  Please do not use.
 
 
